@@ -441,7 +441,31 @@ pub mod hammer_s17_hw0 {
     (inp: List<X>, f:Rc<F>) -> List<X> 
     where F:Fn(X) -> bool
   {
-    panic!("TODO")
+    match inp {
+    	List::Nil => List::Nil,
+    	List::Cons(x, nm, xs) => {
+    		memo!(nm.clone() =>> list_filter_cons =>> <X,F>, 
+              x:x, nm:nm, xs:xs 
+              ;; 
+              f:f)
+    	}
+    }
+  }
+  
+  pub fn list_filter_cons<X:Eq+Clone+Hash+Debug+'static,
+                       F:'static>
+    (x:X, nm:Name, xs: Art<List<X>>, f:Rc<F>) -> List<X> 
+    where F:Fn(X) -> bool
+  {    
+    let (nm1, nm2) = name_fork(nm);
+    let y = f(x.clone());
+    let rest = list_filter(force(&xs), f);
+    if y {
+    	List::Cons(x, nm1, cell(nm2, rest))
+    }
+    else {
+    	rest
+    }
   }
 
   /// List split:
@@ -450,16 +474,55 @@ pub mod hammer_s17_hw0 {
     (inp: List<X>, f:Rc<F>) -> (List<X>, List<X>)
     where F:Fn(X) -> bool
   {
-    panic!("TODO")
+    match inp {
+    	List::Nil => (List::Nil, List::Nil),
+    	List::Cons(x, nm, xs) => {
+    		memo!(nm.clone() =>> list_split_cons =>> <X,F>,
+    			x:x, nm:nm, xs:xs
+    			;;
+    			f:f)
+    	}
+    }
   }
+  
+  pub fn list_split_cons<X:Eq+Clone+Hash+Debug+'static,
+						  F:'static>
+	(x:X, nm:Name, xs: Art<List<X>>, f:Rc<F>) -> (List<X>, List<X>)
+	where F:Fn(X) -> bool
+	{
+		let (nm1, nm2) = name_fork(nm);
+		let y = f(x.clone());
+		let (restl, restr) = list_split(force(&xs), f);
+		if y {
+			(List::Cons(x, nm1, cell(nm2, restl)), restr)
+		}
+		else {
+			(restl, List::Cons(x, nm1, cell(nm2, restr)))
+		}
+	}
 
   /// List reverse:
   pub fn list_reverse<X:Eq+Clone+Hash+Debug+'static>
     (inp: List<X>) -> List<X>
   {
-    panic!("TODO")
+    match inp {
+    	List::Nil => List::Nil,
+    	List::Cons(x, nm, xs) => {
+    		memo!(nm.clone() => list_reverse_cons =>> <X>,
+    			x:x, nm:nm, xs:xs
+    			;;
+    			f:f)
+    	}
+    }
   }
 
+  pub fn list_reverse_cons<X:Eq+Clone+Hash+Debug+'static>
+    (x:X, nm:Name, xs: Art<List<X>>) -> List<X>
+    {
+    	let (nm1, nm2) = name_fork(nm);
+    	let y = list_reverse(force(&xs));
+    	List::Nil; //temp
+    }
 
   #[derive(Clone,Debug)]
   pub struct RunFilter { } 
