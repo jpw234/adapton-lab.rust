@@ -651,7 +651,28 @@ pub mod hammer_s17_hw1 {
     (inp: List<X>, f:Rc<F>) -> List<X> 
     where F:Fn(X) -> bool
   {
-    panic!("unimplemented")
+    match inp {
+    	List::Nil => List::Nil,
+    	List::Cons(x, xs) => {
+    		let tl_filter = list_filter(*xs, f.clone());
+    		if f(x.clone()) {
+    			List::Cons(x, Box::new(tl_filter))
+    		} else { tl_filter }
+    	},
+    	List::Name(nm, lst) => {
+    		let filtered = 
+	    		memo!( nm.clone() =>> list_filter =>> <X,F>,
+		    		   inp:*lst
+		    		   ;;
+		    		   f:f
+		    		 );
+		    let (nm1, nm2) = name_fork(nm.clone());
+		    List::Name(nm1, Box::new(List::Art(cell(nm2, filtered))))
+    	},
+    	List::Art(art) => {
+    		list_filter(force(&art), f)
+    	}
+    }
   }
 
   /// List split:
@@ -660,28 +681,139 @@ pub mod hammer_s17_hw1 {
     (inp: List<X>, f:Rc<F>) -> (List<X>, List<X>)
     where F:Fn(X) -> bool
   {
-    panic!("unimplemented")
+    match inp {
+    	List::Nil => (List::Nil, List::Nil),
+    	List::Cons(x, xs) => {
+    		let (left, right) = list_split(*xs, f.clone());
+    		if f(x.clone()) {
+    			(List::Cons(x, Box::new(left)), right)
+    		} else { (left, List::Cons(x, Box::new(right))) }
+    	},
+    	List::Name(nm, lst) => {
+    		let (left, right) = 
+	    		memo!( nm.clone() =>> list_split =>> <X,F>,
+	    			   inp:*lst
+	    			   ;;
+	    			   f:f
+		    		 );
+		    let (nml, nmr) = name_fork(nm);
+		    let (nml1, nml2) = name_fork(nml);
+		    let (nmr1, nmr2) = name_fork(nmr);
+		    (List::Name(nml1, Box::new(List::Art(cell(nml2,left)))),
+		     List::Name(nmr1, Box::new(List::Art(cell(nmr2, right)))))
+    	},
+    	List::Art(art) => {
+    		list_split(force(&art), f)
+    	}
+    }
   }
 
   /// List reverse:
   pub fn list_reverse<X:Eq+Clone+Hash+Debug+'static>
     (inp: List<X>) -> List<X>
   {
-    panic!("TODO")
+    rev_internal(List::Nil, inp)
+  }
+  
+  fn rev_internal<X:Eq+Clone+Hash+Debug+'static>
+    (acc: List<X>, inp: List<X>) -> List<X>
+  {
+  	match inp {
+  		List::Nil => acc,
+  		List::Cons(x, xs) => {
+  			let acc = List::Cons(x, Box::new(acc));
+  			rev_internal(acc, *xs)
+  		},
+  		List::Name(nm, lst) => {
+  			let reversed =
+  			  memo!( nm.clone() =>> rev_internal::<X>,
+  			  	     acc:acc, inp:*lst
+	  			   );
+  			let (nm1, nm2) = name_fork(nm);
+  			List::Name(nm1, Box::new(List::Art(cell(nm2, reversed))))
+  		},
+  		List::Art(art) => {
+  			rev_internal(acc, force(&art))
+  		}
+  	}
   }
 
   /// List join:
   pub fn list_join<X:Eq+Clone+Hash+Debug+'static>
     (inp: List<List<X>>) -> List<X>
   {
-    panic!("TODO")
+    join_internal(inp, List::Nil)
+  }
+  
+  fn join_internal<X:Eq+Clone+Hash+Debug+'static>
+    (inp: List<List<X>>, acc: List<X>) -> List<X>
+  {
+  	match inp {
+  		List::Nil => acc,
+  		List::Cons(x, xs) => {
+  			join_internal(*xs, merge(x, acc))
+  		},
+  		List::Name(nm, lst) => {
+  			let joined = 
+  			  memo!( nm.clone() =>> join_internal::<X>,
+  			  	     inp:*lst, acc:acc
+	  			   );
+  			let (nm1, nm2) = name_fork(nm);
+  			List::Name(nm1, Box::new(List::Art(cell(nm2, joined))))
+  		},
+  		List::Art(art) => {
+  			join_internal(force(&art), acc)
+  		}
+  	}
+  }
+  
+  //merges all elements of inp into acc with no order guarantees
+  fn merge<X:Eq+Clone+Hash+Debug+'static>
+    (inp: List<X>, acc: List<X>) -> List<X>
+  {
+  	match inp {
+  		List::Nil => acc,
+  		List::Cons(x, xs) => {
+  			let new_acc = List::Cons(x, Box::new(acc));
+  			merge(*xs, new_acc)
+  		},
+  		List::Name(nm, lst) => {
+  			let merged =
+  			  memo!( nm.clone() =>> merge::<X>,
+  			  	     inp:*lst, acc:acc
+	  			   );
+  			let (nm1, nm2) = name_fork(nm);
+  			List::Name(nm1, Box::new(List::Art(cell(nm2, merged))))
+  		},
+  		List::Art(art) => {
+  			merge(force(&art), acc)
+  		}
+  	}
   }
 
   /// List singletons:
   pub fn list_singletons<X:Eq+Clone+Hash+Debug+'static>
     (inp: List<X>) -> List<List<X>>
   {
-    panic!("TODO")
+    match inp {
+    	List::Nil => {List::Nil},
+    	List::Cons(x, xs) => {
+    		let rest = list_singletons(*xs);
+    		let singleton = {x};
+    		List::Cons(singleton, Box::new(rest))
+    	},
+    	List::Name(nm, lst) => {
+    		let done = 
+    		  memo!(nm.clone() =>> list_singletons::<X>,
+	    		  	inp:*lst
+	    		   );
+    		let (nm1, nm2) = name_fork(nm);
+    		List::Name(nm1, Box::new(List::Art(cell(nm2, done))))
+    	},
+    	List::Art(art) => {
+    		list_singletons(force(&art))
+    	}
+    }
   }
 
 
@@ -1385,6 +1517,49 @@ pub fn all_labs() -> Vec<Box<Lab>> {
             hammer_s17_hw0::Editor,
             hammer_s17_hw0::RunReverse)
       ,*/
+    
+    /* - - - - - - - - - - - - - - - - - - - - - - - - */   
+    /* Homework #1 */
+
+    labdef!(name_of_str("hammer-s17-hw1-filter"),
+            Some(String::from("")),
+            hammer_s17_hw1::List<usize>, usize,
+            hammer_s17_hw1::List<usize>,
+            hammer_s17_hw1::Editor,
+            hammer_s17_hw1::RunFilter)
+      ,
+
+    labdef!(name_of_str("hammer-s17-hw1-split"),
+            Some(String::from("")),
+            hammer_s17_hw1::List<usize>, usize,
+            (hammer_s17_hw1::List<usize>, hammer_s17_hw1::List<usize>),
+            hammer_s17_hw1::Editor,
+            hammer_s17_hw1::RunSplit)
+      ,
+
+    labdef!(name_of_str("hammer-s17-hw1-reverse"),
+            Some(String::from("")),
+            hammer_s17_hw1::List<usize>, usize,
+            hammer_s17_hw1::List<usize>,
+            hammer_s17_hw1::Editor,
+            hammer_s17_hw1::RunReverse)
+      ,
+
+    labdef!(name_of_str("hammer-s17-hw1-singletons"),
+            Some(String::from("")),
+            hammer_s17_hw1::List<usize>, usize,
+            hammer_s17_hw1::List<hammer_s17_hw1::List<usize>>,
+            hammer_s17_hw1::Editor,
+            hammer_s17_hw1::RunSingletons)
+      ,
+
+    // labdef!(name_of_str("hammer-s17-hw1-join"),
+    //         Some(String::from("")),
+    //         hammer_s17_hw1::List<hammer_s17_hw1::List<usize>>, usize,
+    //         hammer_s17_hw1::List<usize>,
+    //         hammer_s17_hw1::LLEditor,
+    //         hammer_s17_hw1::RunJoin)
+    //   ,
 
   ]
 }
