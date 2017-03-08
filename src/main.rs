@@ -2,6 +2,7 @@
 //! README](https://github.com/cuplv/adapton-lab.rust).
 #![feature(box_patterns)]
 #![feature(field_init_shorthand)]
+#![feature(associated_consts)]
 //#![feature(rustc_private)]
 //#![feature(custom_derive)]
 
@@ -35,6 +36,9 @@ pub mod labrun;
 /// Provides **concrete instances** of the test diagram from the
 /// [Adapton Lab README](https://github.com/cuplv/adapton-lab.rust).
 pub mod catalog;
+
+pub mod trie;
+mod bitstring;
 
 use labdef::*;
 use adapton::engine::reflect::string_of_name;
